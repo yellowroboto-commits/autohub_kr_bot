@@ -55,27 +55,8 @@ def send_to_telegram(text):
     requests.post(url, data=payload)
 
 def main():
-    posted = load_posted()
-    articles = get_articles()
+    send_to_telegram("✅ Тестовое сообщение. Бот работает.")
 
-    new_posts = []
-    for title, link in articles:
-        if link not in posted:
-            new_posts.append((title, link))
-            posted.append(link)
-
-    if not new_posts:
-        return
-
-    date = datetime.now().strftime("%d.%m.%Y")
-    message = f"🚗 <b>Автоновости Encar — {date}</b>\n\n"
-
-    for i, (title_kr, link) in enumerate(new_posts, 1):
-        title_ru = translate(title_kr)
-        message += f"{i}️⃣ <b>{title_ru}</b>\n{link}\n\n"
-
-    send_to_telegram(message)
-    save_posted(posted)
 
 if __name__ == "__main__":
     main()
