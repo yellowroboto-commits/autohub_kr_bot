@@ -1,0 +1,81 @@
+import requests
+from bs4 import BeautifulSoup
+import os
+import json
+from googletrans import Translator
+from datetime import datetime
+
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+CHANNEL_ID = os.getenv("CHANNEL_ID")
+
+BASE_URL = "https://www.encar.com"
+MEDIA_URL = "https://www.encar.com/mg/index.do"
+
+HEADERS = {
+    "User-Agent": "Mozilla/5.0"
+}
+
+translator = Translator()
+
+def get_articles():
+    r = requests.get(MEDIA_URL, headers=HEADERS)
+    soup = BeautifulSoup(r.text, "html.parser")
+
+    articles = []
+    items = soup.select(".list_area li")[:6]
+
+    for item in items:
+        title_kr = item.select_one(".tit").get_text(strip=True)
+        link = BASE_URL + item.select_one("a")["href"]
+        articles.append((title_kr, link))
+
+    return articles
+
+def load_posted():
+    if os.path.exists("posted.json"):
+        with open("posted.json", "r") as f:
+            return json.load(f)
+    return []
+
+def save_posted(data):
+    with open("posted.json", "w") as f:
+        json.dump(data, f)
+
+def translate(text):
+    return translator.translate(text, src="ko", dest="ru").text
+
+def send_to_telegram(text):
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": CHANNEL_ID,
+        "text": text,
+        "parse_mode": "HTML",
+        "disable_web_page_preview": False
+    }
+    requests.post(url, data=payload)
+
+def main():
+    posted = load_posted()
+    articles = get_articles()
+
+    new_posts = []
+    for title, link in articles:
+        if link not in posted:
+            new_posts.append((title, link))
+            posted.append(link)
+
+    if not new_posts:
+        return
+
+    date = datetime.now().strftime("%d.%m.%Y")
+    message = f"🚗 <b>Автоновости Encar — {date}</b>\n\n"
+
+    for i, (title_kr, link) in enumerate(new_posts, 1):
+        title_ru = translate(title_kr)
+        message += f"{i}️⃣ <b>{title_ru}</b>\n{link}\n\n"
+
+    send_to_telegram(message)
+    save_posted(posted)
+
+if __name__ == "__main__":
+    main()
