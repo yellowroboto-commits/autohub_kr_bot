@@ -1,0 +1,23 @@
+name: Encar to Telegram
+
+on:
+  schedule:
+    - cron: "0 11 * * *"  # 20:00 KST
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          pip install requests beautifulsoup4 googletrans==4.0.0-rc1
+
+      - name: Run parser
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
+        run: |
+          python main.py
